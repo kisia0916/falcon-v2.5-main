@@ -13,7 +13,8 @@ interface clientListInterface {
     mainClientSocket:any,
     dataClientSocket:any,
     targetInfo:targetsInfoInterface
-    rastPacketInfo:rastPacketInfoInterface
+    rastPacketInfo:rastPacketInfoInterface,
+    systemMode:"upload"|"download"|undefined
 }
 export interface targetsInfoInterface {
     mainTarget:string,
@@ -35,8 +36,8 @@ server.on("connection",(socket)=>{
     let clientType:string = ""
     let mainClientId:string = ""//dataClientがmainClientのIDを保存するよう
     let rastPacketSize:number = 0
-    let systemMode:"upload"|"download"|"" = ""
-
+    let systemMode:"upload"|"download"|undefined = undefined
+    let getPackerDataFirst:boolean = true
     let changeJsonFlg = true
     let targetsInfo:targetsInfoInterface = {mainTarget:"",subTarget:""}//mainは自分から接続しに行ったクライアントでsubは相手から接続してきたクライアント
     socket.write(setFormat("first_send","server",""))
@@ -49,6 +50,12 @@ server.on("connection",(socket)=>{
             getData = JSON.parse(data)
         }else{
             getData = data
+            if (getPackerDataFirst){
+                let myIndex = clientList.findIndex((i)=>i.userId === mainClientId)
+                if (myIndex !== -1){
+                    systemMode = clientList[myIndex].systemMode
+                }
+            }
             dataClientFun(data,targetsInfo,mainClientId,systemMode)
         }
         if (changeJsonFlg){
@@ -57,7 +64,7 @@ server.on("connection",(socket)=>{
                 if (getData.data.data === "mainClient"){
                     userId = uuid.v4()
                     systemMode = getData.data.systemMode
-                    clientList.push({userId:userId,mainClientSocket:socket,dataClientSocket:undefined,targetInfo:{mainTarget:"",subTarget:""},rastPacketInfo:{rastPacketSize:0,splitDataListLength:0}})
+                    clientList.push({userId:userId,mainClientSocket:socket,dataClientSocket:undefined,targetInfo:{mainTarget:"",subTarget:""},rastPacketInfo:{rastPacketSize:0,splitDataListLength:0},systemMode:undefined})
                     socket.write(setFormat("send_server_userId","server",userId))
                 }else if (getData.data.data === "dataClient"){
 
@@ -93,13 +100,22 @@ server.on("connection",(socket)=>{
                     clientList[subTargetIndex].mainClientSocket.write(setFormat("connection_mainTarget_dataClient","server","start"))
             }else if (getData.type === "start_upload_settings"){
                 //データをjsonに変換させないようにする
-                const myIndex = clientList.findIndex((i)=>i.userId === userId)
                 console.log("kkkkkk")
                 console.log(userId)
-                if (myIndex !== -1){
                     // console.log(clientList[myIndex])
-                    changeJsonFlg = true
-                    clientList[myIndex].dataClientSocket.write(setFormat("conection_done_dataClient","server","done"))
+                systemMode = "upload"
+                const mainTargetIndex = clientList.findIndex((i)=>i.userId === targetsInfo.mainTarget)
+                if (mainTargetIndex !== -1){
+                    clientList[mainTargetIndex].mainClientSocket.write(setFormat("set_system_mode","server","upload"))
+                }
+            }else if (getData.type === "done_set_systemmode"){
+                if (getData.data === "upload"){
+                    systemMode = "upload"
+                    const subTargetIndex = clientList.findIndex((i)=>i.userId === targetsInfo.subTarget)
+                    console.log(targetsInfo.subTarget)
+                    if (subTargetIndex !== -1){
+                        clientList[subTargetIndex].dataClientSocket.write(setFormat("conection_done_dataClient","server","done"))
+                    }
                 }
             }else if (systemMode === "upload"){
                 if (getData.type === "done_write_mainTargetFile"){
@@ -111,6 +127,7 @@ server.on("connection",(socket)=>{
                     }
                 }else if (getData.type === "send_rast_packet_size"){
                     rastPacketSize = getData.data.rastPacketSize
+                    
                     const myIndex = clientList.findIndex((i)=>i.userId === userId)
                     console.log("パケットサイズ取得３")
                     if (myIndex !== -1){
@@ -119,6 +136,7 @@ server.on("connection",(socket)=>{
                         console.log(rastPacketSize)
                         clientList[myIndex].rastPacketInfo.rastPacketSize = rastPacketSize
                         clientList[myIndex].rastPacketInfo.splitDataListLength = getData.data.splitDataListLength
+                        clientList[myIndex].systemMode = getData.data.systemMode
                     }
                     console.log(rastPacketSize)
                     const mainTargetIndex = clientList.findIndex((i)=>i.userId === targetsInfo.mainTarget)
@@ -129,6 +147,11 @@ server.on("connection",(socket)=>{
                     const subTargetIndex = clientList.findIndex((i)=>i.userId === targetsInfo.subTarget)
                     if (subTargetIndex !== -1){
                         clientList[subTargetIndex].mainClientSocket.write(setFormat("start_send_packet_2","server","done"))
+                    }
+                }else if (getData.type === "done_upload_alldata"){
+                    const subTargetIndex = clientList.findIndex((i)=>i.userId === targetsInfo.subTarget)
+                    if (subTargetIndex !== -1){
+                        clientList[subTargetIndex].mainClientSocket.write(setFormat("done_upload_alldata_mainTarget","server","done"))
                     }
                 }
             }else if (systemMode === "download"){

@@ -1,5 +1,5 @@
 import * as fs from "fs"
-import { dataClient, mainClient, sendDataSplitSize } from "./clientMain"
+import { dataClient, mainClient, sendDataSplitSize, systemMode } from "./clientMain"
 import { setFormat } from "../protocol/sendFormat"
 import { readRateAniRun } from "./textLog"
 let splitDataList:any[] = []
@@ -8,8 +8,12 @@ let fileFd:any = undefined
 let splitDataCounter:number = 0
 let splitNum:number = 0
 let rastPacketSize:number = 0
-let fileSize:number = 0
+export let fileSize:number = 0
 export let nowSendedSize:number = 0
+
+export const setNowSendedSize = (data:number)=>{
+    nowSendedSize = data
+}
 const openFile = (path:string)=>{
     fs.open(path,"r",(err,fd)=>{
         fileFd = fd
@@ -18,7 +22,7 @@ const openFile = (path:string)=>{
         splitNum = Math.ceil(fileSize/sendDataSplitSize)
         rastPacketSize = fileSize%sendDataSplitSize
         // console.log(rastPacketSize)
-        mainClient.write(setFormat("send_rast_packet_size","mainClient",{rastPacketSize:rastPacketSize,splitDataListLength:splitNum}))
+        mainClient.write(setFormat("send_rast_packet_size","mainClient",{rastPacketSize:rastPacketSize,splitDataListLength:splitNum,systemMode:systemMode}))
         readRateAniRun("Uploading file",fileSize)
     })
 }
@@ -40,8 +44,8 @@ export const NextSendFile = ()=>{
         buffer = Buffer.alloc(rastPacketSize)
         fs.read(fileFd,buffer,0,rastPacketSize,splitDataCounter*sendDataSplitSize,(err, bytesRead, buffer)=>{
             sendData(buffer)
-            // console.log(splitDataCounter*sendDataSplitSize)
             nowSendedSize = fileSize
+            // console.log(splitDataCounter*sendDataSplitSize)
         })
     }
 }

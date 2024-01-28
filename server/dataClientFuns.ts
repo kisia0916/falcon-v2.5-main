@@ -3,9 +3,11 @@ import { clientList, rastPacketInfoInterface, sendDataSplitSize, targetsInfoInte
 let getDataCacheList:any[] = []
 let rastPacketInfo:rastPacketInfoInterface|undefined = undefined
 let packetCounter:number = 0
-export const dataClientFun = (data:any,targetInfo:targetsInfoInterface,mainClientUserId:string,systemMode:string)=>{
+export const dataClientFun = (data:any,targetInfo:targetsInfoInterface,mainClientUserId:string,systemMode:string|undefined)=>{
     let targetId:string = ""
+    console.log(systemMode)
     if (systemMode === "upload"){
+        console.log("一応「")
         targetId = targetInfo.mainTarget
     }else if (systemMode === "download"){
         targetId = targetInfo.subTarget
@@ -28,6 +30,7 @@ export const dataClientFun = (data:any,targetInfo:targetsInfoInterface,mainClien
             console.log(Buffer.concat(getDataCacheList).length)
             if (Buffer.concat(getDataCacheList).length === sendDataSplitSize){
                 console.log("すべてのパケットを取得しました")
+                console.log(targetId)
                 const targetDataClientIndex = clientList.findIndex((i)=>i.userId === targetId)
                 // console.log(targetDataClientIndex)
 

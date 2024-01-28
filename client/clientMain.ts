@@ -1,8 +1,9 @@
 import * as net from "net"
 import * as fs from "fs"
 import { setFormat } from "../protocol/sendFormat"
-import { NextSendFile, firstSendSetting} from "./sendFile"
+import { NextSendFile, fileSize, firstSendSetting, nowSendedSize, setNowSendedSize} from "./sendFile"
 import { loadTextAniRun } from "./textLog"
+import { cmdAnalyze, getInput } from "./getInput"
 
 export const mainClient = new net.Socket()
 export const dataClient = new net.Socket()
@@ -32,8 +33,11 @@ export const sendDataSplitSize = 102400
 export let rastPacketSize:number = 0
 export let splitDataListLength:number = 0
 export let packetCounter:number = 0
-export let systemMode:"upload"|"download"|undefined = "upload"
+export let systemMode:"upload"|"download"|undefined = undefined
 
+export const setSystemMode = (mode:"upload"|"download")=>{
+    systemMode = mode
+}
 
 mainClient.on("data",(data:string)=>{
     const getData:getDataInterFace = JSON.parse(data)
@@ -62,6 +66,10 @@ mainClient.on("data",(data:string)=>{
         dataClient.connect(PORT,HOST,()=>{
             console.log("dataClient connected server!")
         })
+    }else if (getData.type === "set_system_mode"){
+        console.log("きてます")
+        systemMode = getData.data
+        mainClient.write(setFormat("done_set_systemmode","mainClient","upload"))
     }else if (systemMode === "upload"){
         if (getData.type === "start_upload"){
             console.log("リクエストが成功しました")
@@ -74,6 +82,8 @@ mainClient.on("data",(data:string)=>{
             mainClient.write(setFormat("start_send_packet","mainClient","done"))
         }else if (getData.type === "start_send_packet_2"){
             NextSendFile()
+        }else if (getData.type === "done_upload_alldata_mainTarget"){
+            setNowSendedSize(fileSize)
         }
     }else if (systemMode === "download"){
         if (getData.type === "start_download"){
@@ -103,7 +113,7 @@ mainClient.on("data",(data:string)=>{
 
 let dataClientFirstFlg:boolean = true
 let getDataCacheList:any[] = []
-dataClient.on("data",(data:string)=>{
+dataClient.on("data",async(data:string)=>{
     let getData:getDataInterFace;
     if (dataClientFirstFlg){
         getData = JSON.parse(data)
@@ -122,7 +132,10 @@ dataClient.on("data",(data:string)=>{
             }
             dataClientFirstFlg = false//ここでもうjsonデータは受け取れなくなる
         }else if (getData.type === "testsig"){
-            mainClient.write(setFormat("start_upload_settings","mainClient","start"))
+            const getCmd = await getInput("testuser1:$>")
+            if (getCmd){
+                cmdAnalyze(getCmd)
+            }
         }
     }else{
         console.log("subTargetからデータを受け取りました")
@@ -147,9 +160,8 @@ dataClient.on("data",(data:string)=>{
                     console.log("最後のパケットを書き込みました")
                     // mainClient.write(setFormat("done_write_mainTargetFile","dataClient","done"))
                     getDataCacheList = []
-                    packetCounter+=1
+                    packetCounter +=1
                 })
-
             }
         }
     }
