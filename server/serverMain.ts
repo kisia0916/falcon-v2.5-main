@@ -44,6 +44,8 @@ server.on("connection",(socket)=>{
     socket.on("data",(data:string)=>{
         let getData:any = ""
         if (changeJsonFlg){
+            console.log(userId)
+            console.log(changeJsonFlg)
             getData = JSON.parse(data)
         }else{
             getData = data
@@ -58,15 +60,17 @@ server.on("connection",(socket)=>{
                     clientList.push({userId:userId,mainClientSocket:socket,dataClientSocket:undefined,targetInfo:{mainTarget:"",subTarget:""},rastPacketInfo:{rastPacketSize:0,splitDataListLength:0}})
                     socket.write(setFormat("send_server_userId","server",userId))
                 }else if (getData.data.data === "dataClient"){
+
                     console.log("動いてるよ")
+                    console.log(getData.data.userId)
                     const clientIndex = clientList.findIndex((i)=>i.userId === getData.data.userId)
                     systemMode = getData.data.systemMode
                     if (clientIndex !== -1){
                         mainClientId = getData.data.userId
                         clientList[clientIndex].dataClientSocket = socket
                         targetsInfo = clientList[clientIndex].targetInfo//dataClientにターゲットの情報を設定
-                        changeJsonFlg = false//データをjsonに変換させないようにする
-                        socket.write(setFormat("conection_done_dataClient","server","done"))
+                        changeJsonFlg = false
+                        socket.write(setFormat("testsig","server","done"))
                     }
                 }
             }else if (getData.type === "send_main_target"){
@@ -83,12 +87,22 @@ server.on("connection",(socket)=>{
                     console.log("リクエストを送信しました")
                     clientList[mainTargetIndex].mainClientSocket.write(setFormat("send_conection_reqest_mainTarget","server",userId))
                 }
-            }else if (systemMode === "upload"){
-                if (getData.type === "done_connection_mainTarget"){
+            }else if (getData.type === "done_connection_mainTarget"){
                     const subTargetIndex = clientList.findIndex((i)=>i.userId === getData.data)
                     targetsInfo.subTarget = getData.data
-                    clientList[subTargetIndex].mainClientSocket.write(setFormat("start_upload","server","start"))
-                }else if (getData.type === "done_write_mainTargetFile"){
+                    clientList[subTargetIndex].mainClientSocket.write(setFormat("connection_mainTarget_dataClient","server","start"))
+            }else if (getData.type === "start_upload_settings"){
+                //データをjsonに変換させないようにする
+                const myIndex = clientList.findIndex((i)=>i.userId === userId)
+                console.log("kkkkkk")
+                console.log(userId)
+                if (myIndex !== -1){
+                    // console.log(clientList[myIndex])
+                    changeJsonFlg = true
+                    clientList[myIndex].dataClientSocket.write(setFormat("conection_done_dataClient","server","done"))
+                }
+            }else if (systemMode === "upload"){
+                if (getData.type === "done_write_mainTargetFile"){
                     console.log("jkfldsjaklfjdasoiejfoiw")
                     console.log(targetsInfo)
                     const subTargetIndex = clientList.findIndex((i)=>i.userId === targetsInfo.subTarget)
@@ -98,7 +112,11 @@ server.on("connection",(socket)=>{
                 }else if (getData.type === "send_rast_packet_size"){
                     rastPacketSize = getData.data.rastPacketSize
                     const myIndex = clientList.findIndex((i)=>i.userId === userId)
+                    console.log("パケットサイズ取得３")
                     if (myIndex !== -1){
+                        console.log("パケットサイズ取得")
+                        console.log(userId)
+                        console.log(rastPacketSize)
                         clientList[myIndex].rastPacketInfo.rastPacketSize = rastPacketSize
                         clientList[myIndex].rastPacketInfo.splitDataListLength = getData.data.splitDataListLength
                     }

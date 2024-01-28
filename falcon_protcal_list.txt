@@ -1,0 +1,54 @@
+プロトコル設定
+setFormat (データタイプ,送信元の情報,データ)
+
+フラグ
+
+
+データタイプリスト
+
+・uploadとdownload両方
+first_send : サーバーにクライアントがアクセスしたときに最初に行う通信
+
+send_client_info : first_sendのレスポンス通信、クライアントの情報をサーバーに送信
+
+send_server_userId : send_client_infoのレスポンス、クライアントがmainClientの時にはユーザーIDを生成しクライアントに送信する
+
+send_main_target : send_server_userIdのレスポンス、mainClientのターゲットのユーザーIDを送信する。mainTargetに接続リクエストを送る
+
+
+・upload
+
+connection_mainTarget_dataClient : done_connection_mainTargetのレスポンス、これをファイルをアップロードする側のクライアントが受け取ると、dataClientをserverに接続させる
+
+start_upload_settings : アップロード開始のタイミングでアップロードする側のクライアントから送信される。
+
+start_upload : サーバーからmainClientに送られる。これmainClientで受け取るとアップロードのための処理が始まる。
+
+conection_done_dataClient : dataClientからのsend_client_infoの場合にこれを返す。dataClientで受け取るタイミングでアップロード処理スタート
+
+send_conection_reqest_mainTarget : send_main_targetのレスポンス、mainTargetに接続リクエストを送る
+
+done_connection_mainTarget : send_conection_reqest_mainTargetのレスポンス、mainTargetとの接続が完了したときにmainTargetから送信される
+
+send_rast_packet_size : splitDataListの長さが1になったときに、その要素のサイズをサーバーに送信する
+
+done_write_mainTargetFile : mainTargetがserverから受信したパケットの情報をすべて受けとり、ファイルに追記が完了したときにサーバーに送信される
+
+send_next_reqest : done_write_mainTargetFileをserverで受け取ったときにファイル送信元のclientのmainClientに次のパケットの送信を促す
+
+send_rast_packet_size_mainTarget : send_rast_packet_sizeをサーバーに送信したときにmainTargetに最後のパケットのサイズを送信する
+
+start_send_packet : send_rast_packet_size_mainTargetのレスポンス。mainTargetからserverに送信される。
+
+start_send_packet_2 : start_send_packetをサーバーが受け取ったときに、ファイル送信側のクライアントに送信される。これを受け取ると、ファイルの送信が開始される
+
+・download
+start_download : ダウンロード開始時にサーバーからmainClientに送信される
+
+send_download_path_main : start_downloadのレスポンス。download要求側のクライアントからダウンロードするファイルのパスを送信する。
+
+
+
+
+
+

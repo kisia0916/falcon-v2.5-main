@@ -58,12 +58,13 @@ mainClient.on("data",(data:string)=>{
         targetsInfo.subTarget = getData.data
         console.log("reqestを受け取りました")
         mainClient.write(setFormat("done_connection_mainTarget","mainClient",targetsInfo.subTarget))
+    }else if (getData.type === "connection_mainTarget_dataClient"){
+        dataClient.connect(PORT,HOST,()=>{
+            console.log("dataClient connected server!")
+        })
     }else if (systemMode === "upload"){
         if (getData.type === "start_upload"){
             console.log("リクエストが成功しました")
-            dataClient.connect(PORT,HOST,()=>{
-                console.log("dataClient connected server!")
-            })
         }else if (getData.type === "send_next_reqest"){
             NextSendFile()
         }else if (getData.type === "send_rast_packet_size_mainTarget"){
@@ -107,17 +108,21 @@ dataClient.on("data",(data:string)=>{
     if (dataClientFirstFlg){
         getData = JSON.parse(data)
         if (getData.type === "first_send"){
+            console.log("firstsendを取得しました")
+            console.log(userId)
             dataClient.write(setFormat("send_client_info","dataClient",{data:"dataClient",userId:userId,systemMode:systemMode}))
         }else if (getData.type === "conection_done_dataClient"){
             if (systemMode === "upload"){
                 if (targetsInfo.mainTarget){
-                    
+                    console.log("startうｐ")
                     firstSendSetting(sendFile)   
                 }
             }else if (systemMode === "download"){
                 mainClient.write(setFormat("send_download_path_main","mainClient",sendFile))
             }
             dataClientFirstFlg = false//ここでもうjsonデータは受け取れなくなる
+        }else if (getData.type === "testsig"){
+            mainClient.write(setFormat("start_upload_settings","mainClient","start"))
         }
     }else{
         console.log("subTargetからデータを受け取りました")

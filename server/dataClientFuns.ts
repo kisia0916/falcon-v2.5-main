@@ -12,6 +12,7 @@ export const dataClientFun = (data:any,targetInfo:targetsInfoInterface,mainClien
     }
     console.log(Buffer.isBuffer(data))
     if (!rastPacketInfo){
+        console.log(mainClientUserId)
         const mainClientIndex = clientList.findIndex((i)=>i.userId === mainClientUserId)
         rastPacketInfo = clientList[mainClientIndex].rastPacketInfo
         console.log(rastPacketInfo)
